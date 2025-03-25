@@ -10,9 +10,13 @@ show_col("#f2f2f2") #background
 
 # Data cleaning -----------------------------------------------------------
 
-data_2016_2022 <- read_excel("RawData/2016-2022.xlsx")
+data_2016_2022 <- read_excel("RawData/2016-2022.xlsx") %>%
+  slice(-2) # Reads file in, removes the second row - which is the question details. This information is present in the codebook.csv
+
 data_2023 <- read_excel("RawData/2023.xlsx")
 data_2024 <- read_excel("RawData/2024.xlsx")
+
+
 
 # Add YearOfSurvey column to 2023 and 2024
 data_2023 <- data_2023 %>%
