@@ -2,15 +2,19 @@ library(scales)
 library(readxl)
 library(tidyverse)
 library(cowplot)
+library(ggplot2)
 
 # Data cleaning -----------------------------------------------------------
 
 # Load data, assigning column names manually
 data_2016_2022 <- read_excel("RawData/2016-2022.xlsx", col_names = TRUE) %>%
-  slice(-2)  # Remove second row
+  slice(-1) 
 
 # Rename the first column as "year" since it lacks a header
 colnames(data_2016_2022)[1] <- "year"
+
+data_2024 <- read_excel("RawData/2024.xlsx", col_names = TRUE) %>%
+  slice(-1)
 
 # W1D1: Fractions ---------------------------------------------------------
 
@@ -146,6 +150,75 @@ text_plot <- ggdraw() +
 
 # Combine line chart and annotation
 final_plot <- plot_grid(p, text_plot, ncol = 1, rel_heights = c(1, 0.1))  
+
+# Print final combined plot
+print(final_plot)
+
+# W1D3: Circular ----------------------------------------------------------
+
+# Define groupings
+stem_fields <- c(
+  "Engineering", "Medicine", "Physics", "Materials Science", "Biology",
+  "Earth and Environmental Science", "Chemistry", "Astronomy and planetary science"
+)
+
+shape_fields <- c(
+  "Social Sciences", "Arts & Humanities", "Business/Investment"
+)
+
+q8_grouped <- data_2024 %>%
+  filter(!is.na(Q8)) %>%
+  mutate(group = case_when(
+    Q8 %in% stem_fields ~ "STEM",
+    Q8 %in% shape_fields ~ "SHAPE",
+    TRUE ~ "Other"
+  )) %>%
+  count(group)
+
+# Set the order of the groups for the legend
+q8_grouped$group <- factor(q8_grouped$group, levels = c("STEM", "SHAPE", "Other"))
+
+# Calculate percentages for legend labels
+q8_grouped <- q8_grouped %>%
+  mutate(percentage = n / sum(n) * 100,
+         legend_label = paste0(group, " (", round(percentage, 1), "%)")  # Create legend label with percentage
+  )
+
+# Custom colors for groups
+custom_colors <- c("STEM" = "#B70062", "SHAPE" = "#8D9C27", "Other" = "#361163")
+
+# Create title text
+text_title <- ggdraw() + 
+  draw_label("Who responded to The State of Open Data survey?", 
+             x = 0.5, hjust = 0.5, vjust = 0.5, size = 14, color = "black") +
+  theme(
+    panel.border = element_blank(),  
+    plot.margin = margin(t = 0, r = 20, b = 0, l = 20)  # Adjust margins
+  )
+
+donut_plot <- ggplot(q8_grouped, aes(x = "", y = n, fill = group)) +  # x is set to an empty string
+  geom_col(color = NA) +  # No outline color
+  coord_polar(theta = "y") +
+  scale_fill_manual(values = custom_colors, labels = q8_grouped$legend_label, guide = guide_legend(title = NULL)) +  # Use legend labels with percentages
+  theme_void(base_size = 14) +  # Use theme_void to remove backgrounds
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = 10)
+  )
+
+# Create annotation text
+text_plot <- ggdraw() + 
+  draw_label("The State of Open Data 2024", 
+             x = 0, hjust = 0, vjust = 0.5, size = 10, color = "black", fontface = "italic") +
+  draw_label("#30DayChartChallenge\nDay 3: Circular", 
+             x = 1, hjust = 1, vjust = 0.5, size = 10, color = "black", fontface = "italic") +
+  theme(
+    panel.border = element_blank(),  
+    plot.margin = margin(t = 0, r = 20, b = 0, l = 20)  # Adjust margins
+  )
+
+# Combine title, donut chart, and annotation
+final_plot <- plot_grid(text_title, donut_plot, text_plot, ncol = 1, rel_heights = c(0.1, 0.8, 0.1))   
 
 # Print final combined plot
 print(final_plot)
